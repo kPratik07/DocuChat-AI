@@ -1,0 +1,39 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom scrollbar for better mobile experience */
+@layer utilities {
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Better touch targets for mobile */
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Smooth transitions */
+  .transition-all {
+    transition: all 0.2s ease-in-out;
+  }
+}
+
+/* Mobile-first responsive adjustments */
+@media (max-width: 640px) {
+  .pdf-controls {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .chat-input {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+}
