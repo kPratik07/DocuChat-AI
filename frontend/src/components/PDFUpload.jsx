@@ -2,6 +2,7 @@ import React, { useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { Upload, FileText } from 'lucide-react';
 import axios from 'axios';
+import API_BASE_URL from '../config';
 
 const PDFUpload = ({ onUpload, onUploadStart, onUploadProgress, onUploadError }) => {
   const [isUploading, setIsUploading] = useState(false);
@@ -33,7 +34,7 @@ const PDFUpload = ({ onUpload, onUploadStart, onUploadProgress, onUploadError })
         });
       }, 100);
 
-      const response = await axios.post('http://localhost:5000/api/upload', formData, {
+      const response = await axios.post(`${API_BASE_URL}/api/upload`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
@@ -46,18 +47,14 @@ const PDFUpload = ({ onUpload, onUploadStart, onUploadProgress, onUploadError })
       clearInterval(progressInterval);
       onUploadProgress(100);
 
-      console.log('Upload response:', response.data); // Debug log
-
-      // Wait a bit to show 100% completion
       setTimeout(() => {
         const pdfData = {
           pdfId: response.data.pdfId,
           fileName: response.data.fileName,
           numPages: response.data.numPages,
-          url: `http://localhost:5000/uploads/${response.data.pdfId}`
+          url: `${API_BASE_URL}/uploads/${response.data.pdfId}`
         };
         
-        console.log('PDF data being passed:', pdfData); // Debug log
         onUpload(pdfData);
       }, 500);
 

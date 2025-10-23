@@ -208,16 +208,12 @@ OPENAI_API_KEY=your-openai-api-key-here
 5. Submit a pull request
 
 ## License
-
 MIT License - see LICENSE file for details
 
 ## Support
-
 For issues and questions:
 - Check the troubleshooting section
 - Review the code comments
 - Open an issue on the repository
-
 ---
-
 Built with ❤️ using React and Node.js 

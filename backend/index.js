@@ -50,9 +50,10 @@ const upload = multer({
   }
 });
 
-// Initialize OpenAI
+// Initialize Groq (using OpenAI SDK)
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || 'your-api-key-here'
+  apiKey: process.env.GROQ_API_KEY,
+  baseURL: 'https://api.groq.com/openai/v1'
 });
 
 // Store PDF data in memory (in production, use a database)
@@ -116,10 +117,10 @@ app.post('/api/chat', async (req, res) => {
       return res.status(400).json({ error: 'Message and PDF ID are required' });
     }
 
-    // Check if OpenAI API key is configured
-    if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === 'your-api-key-here') {
+    // Check if Groq API key is configured
+    if (!process.env.GROQ_API_KEY) {
       return res.status(500).json({ 
-        error: 'OpenAI API key not configured. Please set OPENAI_API_KEY environment variable.' 
+        error: 'Groq API key not configured. Please set GROQ_API_KEY environment variable.' 
       });
     }
 
@@ -142,14 +143,14 @@ app.post('/api/chat', async (req, res) => {
     
     Please provide a helpful response based on the document content. If you reference specific information, mention the page number.`;
 
-    // Get AI response
+    // Get AI response from Groq
     const completion = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
+      model: "llama-3.3-70b-versatile",
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt }
       ],
-      max_tokens: 500,
+      max_tokens: 1000,
       temperature: 0.7
     });
 

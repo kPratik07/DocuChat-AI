@@ -1,0 +1,102 @@
+/* Navbar Container */
+.navbar {
+  background-color: white;
+  border-bottom: 1px solid #e5e7eb;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.navbar-content {
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 0 0.75rem;
+}
+
+.navbar-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 3rem;
+}
+
+.navbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.navbar-icon-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  background-color: #9333ea;
+  border-radius: 0.5rem;
+}
+
+.navbar-icon {
+  width: 1rem;
+  height: 1rem;
+  color: white;
+}
+
+.navbar-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.navbar-title {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.navbar-subtitle {
+  font-size: 0.75rem;
+  color: #6b7280;
+  display: none;
+}
+
+/* Tablet and Desktop */
+@media (min-width: 640px) {
+  .navbar-content {
+    padding: 0 1.5rem;
+  }
+
+  .navbar-inner {
+    height: 3.5rem;
+  }
+
+  .navbar-brand {
+    gap: 0.75rem;
+  }
+
+  .navbar-icon-wrapper {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+
+  .navbar-icon {
+    width: 1.5rem;
+    height: 1.5rem;
+  }
+
+  .navbar-title {
+    font-size: 1.125rem;
+  }
+
+  .navbar-subtitle {
+    display: block;
+  }
+}
+
+/* Large Desktop */
+@media (min-width: 1024px) {
+  .navbar-content {
+    padding: 0 2rem;
+  }
+
+  .navbar-title {
+    font-size: 1.25rem;
+  }
+}

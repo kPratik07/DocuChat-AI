@@ -1,42 +1,242 @@
+/* Root container - full viewport */
 #root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+  width: 100%;
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+/* Ensure proper box-sizing */
+* {
+  box-sizing: border-box;
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
+/* Main app container */
+.app-main {
+  min-height: 100vh;
+  background-color: #f9fafb;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Content wrapper */
+.app-content-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Upload screen container */
+.upload-screen-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 3.5rem);
+  padding-top: 2rem;
+  padding-bottom: 4rem;
+}
+
+/* Mobile adjustments */
+@media (max-width: 767px) {
+  .upload-screen-container {
+    min-height: calc(100vh - 3rem);
+    padding-top: 2rem;
+    padding-bottom: 2rem;
+    align-items: flex-start;
   }
+}
+
+/* Loading screen container */
+.loading-screen-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 3.5rem);
+}
+
+@media (max-width: 767px) {
+  .loading-screen-container {
+    min-height: calc(100vh - 3rem);
+  }
+}
+
+.loading-card {
+  background-color: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  padding: 2rem;
+  max-width: 28rem;
+  width: 100%;
+  margin: 0 1rem;
+}
+
+.loading-spinner-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+.loading-spinner {
+  width: 2rem;
+  height: 2rem;
+  border: 2px solid transparent;
+  border-top-color: #9333ea;
+  border-radius: 50%;
+  animation: app-spin 1s linear infinite;
+}
+
+@keyframes app-spin {
   to {
     transform: rotate(360deg);
   }
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
+.loading-text {
+  color: #374151;
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.loading-progress-bar {
+  width: 100%;
+  background-color: #e5e7eb;
+  border-radius: 9999px;
+  height: 0.5rem;
+  overflow: hidden;
+}
+
+.loading-progress-fill {
+  background-color: #9333ea;
+  height: 0.5rem;
+  border-radius: 9999px;
+  transition: width 0.3s;
+}
+
+.loading-percentage {
+  color: #9333ea;
+  text-align: center;
+  margin-top: 0.5rem;
+  font-weight: 600;
+}
+
+/* Split view layout - Mobile First (Default: Vertical Stack) */
+.split-view-container {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 3rem);
+  overflow: hidden;
+}
+
+.chat-panel {
+  width: 100%;
+  min-height: 42vh;
+  max-height: 42vh;
+  background-color: white;
+  border-bottom: 3px solid #d1d5db;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.pdf-panel {
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  background-color: #f9fafb;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 0.5rem;
+  box-sizing: border-box;
+}
+
+/* Very Small Mobile Screens */
+@media (max-width: 374px) {
+  .split-view-container {
+    height: calc(100vh - 3rem);
+  }
+
+  .chat-panel {
+    min-height: 38vh;
+    max-height: 38vh;
+  }
+
+  .pdf-panel {
+    padding: 0.375rem;
   }
 }
 
-.card {
-  padding: 2em;
+/* Small Mobile Screens */
+@media (min-width: 375px) and (max-width: 767px) {
+  .split-view-container {
+    height: calc(100vh - 3rem);
+  }
+
+  .chat-panel {
+    min-height: 40vh;
+    max-height: 40vh;
+  }
+
+  .pdf-panel {
+    padding: 0.5rem;
+  }
 }
 
-.read-the-docs {
-  color: #888;
+/* Tablet and Above - Side by Side */
+@media (min-width: 768px) {
+  .split-view-container {
+    flex-direction: row;
+    height: calc(100vh - 3.5rem);
+  }
+
+  .chat-panel {
+    width: 45%;
+    min-height: 100%;
+    max-height: 100%;
+    border-bottom: none;
+    border-right: 2px solid #e5e7eb;
+  }
+
+  .pdf-panel {
+    width: 55%;
+    height: 100%;
+    padding: 0;
+    background-color: white;
+  }
+}
+
+/* Desktop */
+@media (min-width: 1024px) {
+  .chat-panel {
+    width: 40%;
+  }
+
+  .pdf-panel {
+    width: 60%;
+  }
+}
+
+/* Large Desktop */
+@media (min-width: 1280px) {
+  .chat-panel {
+    width: 38%;
+  }
+
+  .pdf-panel {
+    width: 62%;
+  }
+}
+
+/* Extra Large Screens */
+@media (min-width: 1536px) {
+  .chat-panel {
+    width: 35%;
+  }
+
+  .pdf-panel {
+    width: 65%;
+  }
 }
