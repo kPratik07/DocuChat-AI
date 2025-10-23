@@ -9,6 +9,7 @@ const PDFUpload = ({ onUpload, onUploadStart, onUploadProgress, onUploadError })
   const [uploadStatus, setUploadStatus] = useState('idle'); // idle, uploading, processing, success, error
   const [errorMessage, setErrorMessage] = useState('');
   const [fileRejectionError, setFileRejectionError] = useState('');
+  const [progress, setProgress] = useState(0);
 
   const onDrop = useCallback(async (acceptedFiles, fileRejections) => {
     // Clear previous errors
@@ -38,34 +39,25 @@ const PDFUpload = ({ onUpload, onUploadStart, onUploadProgress, onUploadError })
 
     setIsUploading(true);
     setUploadStatus('uploading');
+    setProgress(0);
     onUploadStart();
 
     try {
       const formData = new FormData();
       formData.append('pdf', file);
 
-      // Simulate upload progress
-      const progressInterval = setInterval(() => {
-        onUploadProgress(prev => {
-          if (prev >= 90) {
-            clearInterval(progressInterval);
-            return 90;
-          }
-          return prev + 10;
-        });
-      }, 100);
-
       const response = await axios.post(`${API_BASE_URL}/api/upload`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
         onUploadProgress: (progressEvent) => {
-          const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-          onUploadProgress(progress);
+          const uploadProgress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          setProgress(uploadProgress);
+          onUploadProgress(uploadProgress);
         },
       });
 
-      clearInterval(progressInterval);
+      setProgress(100);
       onUploadProgress(100);
       
       // Ensure uploading message is shown for at least 1 second
@@ -111,6 +103,7 @@ const PDFUpload = ({ onUpload, onUploadStart, onUploadProgress, onUploadError })
         setUploadStatus('idle');
         setErrorMessage('');
         setIsUploading(false);
+        setProgress(0);
       }, 5000);
     }
   }, [onUpload, onUploadStart, onUploadProgress, onUploadError]);
@@ -211,14 +204,28 @@ const PDFUpload = ({ onUpload, onUploadStart, onUploadProgress, onUploadError })
         {/* Uploading State */}
         {uploadStatus === 'uploading' && !fileRejectionError && !isDragReject && (
           <>
-            <h2 className="text-2xl font-semibold text-blue-600 mb-2">
-              Uploading PDF - Please Wait...
+            <h2 className="text-xl font-semibold text-purple-600 mb-6">
+              Uploading PDF
             </h2>
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-              <p className="text-blue-700 text-sm">
-                Please wait while your file is being uploaded...
-              </p>
+            
+            {/* Progress Bar */}
+            <div className="w-full mb-4">
+              <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                <div 
+                  className="bg-purple-600 h-3 rounded-full transition-all duration-300 ease-out"
+                  style={{ width: `${progress}%` }}
+                ></div>
+              </div>
             </div>
+            
+            {/* Percentage */}
+            <p className="text-2xl font-bold text-purple-600 mb-2">
+              {progress}%
+            </p>
+            
+            <p className="text-gray-500 text-sm">
+              Please wait...
+            </p>
           </>
         )}
 
