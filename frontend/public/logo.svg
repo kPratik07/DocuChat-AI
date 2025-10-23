@@ -1,0 +1,32 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background Circle -->
+  <circle cx="256" cy="256" r="256" fill="url(#gradient)"/>
+  
+  <!-- Document Icon -->
+  <path d="M160 120C160 106.745 170.745 96 184 96H280L360 176V392C360 405.255 349.255 416 336 416H184C170.745 416 160 405.255 160 392V120Z" fill="white" opacity="0.95"/>
+  
+  <!-- Document Corner Fold -->
+  <path d="M280 96V152C280 165.255 290.745 176 304 176H360L280 96Z" fill="#E9D5FF"/>
+  
+  <!-- Document Lines -->
+  <line x1="200" y1="220" x2="320" y2="220" stroke="#9333EA" stroke-width="8" stroke-linecap="round"/>
+  <line x1="200" y1="260" x2="300" y2="260" stroke="#9333EA" stroke-width="8" stroke-linecap="round"/>
+  <line x1="200" y1="300" x2="320" y2="300" stroke="#9333EA" stroke-width="8" stroke-linecap="round"/>
+  
+  <!-- Chat Bubble -->
+  <circle cx="360" cy="360" r="80" fill="#9333EA"/>
+  <path d="M340 340C340 334.477 344.477 330 350 330H370C375.523 330 380 334.477 380 340V360C380 365.523 375.523 370 370 370H355L345 380V370C340 370 340 365.523 340 360V340Z" fill="white"/>
+  
+  <!-- Chat Dots -->
+  <circle cx="350" cy="350" r="4" fill="#9333EA"/>
+  <circle cx="360" cy="350" r="4" fill="#9333EA"/>
+  <circle cx="370" cy="350" r="4" fill="#9333EA"/>
+  
+  <!-- Gradient Definition -->
+  <defs>
+    <linearGradient id="gradient" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#9333EA"/>
+      <stop offset="100%" stop-color="#7E22CE"/>
+    </linearGradient>
+  </defs>
+</svg>
