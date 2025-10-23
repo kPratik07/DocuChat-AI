@@ -256,9 +256,28 @@ app.use('/uploads', (req, res, next) => {
   }
 }));
 
+// Root route - Test if backend is working
+app.get('/', (req, res) => {
+  res.json({ 
+    message: 'DocuChat AI Backend is running! 🚀',
+    status: 'active',
+    version: '1.0.0',
+    endpoints: {
+      upload: '/api/upload',
+      chat: '/api/chat',
+      health: '/api/health'
+    },
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Health check
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK', timestamp: new Date().toISOString() });
+  res.json({ 
+    status: 'OK', 
+    message: 'Backend is healthy',
+    timestamp: new Date().toISOString() 
+  });
 });
 
 // Error handling middleware
