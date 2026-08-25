@@ -1,13 +1,17 @@
-import mongoose from "mongoose";
+const mongoose = require('mongoose');
 
 const connectDB = async () => {
+  if (!process.env.MONGO_URI) {
+    console.warn('MONGO_URI is not configured. Database features are unavailable.');
+    return;
+  }
+
   try {
     await mongoose.connect(process.env.MONGO_URI);
-    console.log("✅ MongoDB Connected Successfully");
+    console.log('MongoDB connected');
   } catch (error) {
-    console.error("❌ MongoDB Connection Failed:", error.message);
-    process.exit(1);
+    console.error('MongoDB connection failed:', error.message);
   }
 };
 
-export { connectDB };
+module.exports = { connectDB };

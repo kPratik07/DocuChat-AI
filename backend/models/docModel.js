@@ -1,16 +1,15 @@
-import mongoose from "mongoose";
+const mongoose = require('mongoose');
 
-const docSchema = new mongoose.Schema(
+const documentSchema = new mongoose.Schema(
   {
-    title: { type: String, required: true },
-    content: { type: String, default: "" },
-    owner: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-    },
+    fileName: { type: String, required: true },
+    storedName: { type: String, required: true, unique: true },
+    filePath: { type: String, required: true },
+    textContent: { type: String, default: '' },
+    numPages: { type: Number, default: 0 },
+    owner: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
   },
   { timestamps: true }
 );
 
-export default mongoose.model("Document", docSchema);
+module.exports = mongoose.model('Document', documentSchema);

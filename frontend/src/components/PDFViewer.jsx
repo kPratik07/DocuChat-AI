@@ -1,55 +1,79 @@
-import { useState, useEffect } from 'react'
-import { Document, Page, pdfjs } from 'react-pdf'
-import { ChevronLeft, ChevronRight, Download, ExternalLink, ZoomIn, ZoomOut } from 'lucide-react'
-import 'react-pdf/dist/esm/Page/AnnotationLayer.css'
-import 'react-pdf/dist/esm/Page/TextLayer.css'
-import './PDFViewer.css'
+import { useState, useEffect } from "react";
+import { Document, Page, pdfjs } from "react-pdf";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Download,
+  ExternalLink,
+  ZoomIn,
+  ZoomOut,
+} from "lucide-react";
+import { api } from "../api";
+import "react-pdf/dist/esm/Page/AnnotationLayer.css";
+import "react-pdf/dist/esm/Page/TextLayer.css";
 
-pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`
+pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
 
 const PDFViewer = ({ pdfUrl, fileName, numPages: totalPages }) => {
-  const [pageNumber, setPageNumber] = useState(1)
-  const [numPages, setNumPages] = useState(totalPages || null)
-  const [scale, setScale] = useState(1.0)
-  const [containerWidth, setContainerWidth] = useState(null)
+  const [pageNumber, setPageNumber] = useState(1);
+  const [numPages, setNumPages] = useState(totalPages || null);
+  const [scale, setScale] = useState(1.0);
+  const [securedPdfUrl, setSecuredPdfUrl] = useState(null);
+
+  useEffect(() => {
+    let objectUrl;
+    const loadPdf = async () => {
+      try {
+        const response = await api.get(pdfUrl, { responseType: "blob" });
+        objectUrl = URL.createObjectURL(response.data);
+        setSecuredPdfUrl(objectUrl);
+      } catch (error) {
+        setSecuredPdfUrl(null);
+      }
+    };
+    if (pdfUrl) loadPdf();
+    return () => {
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [pdfUrl]);
 
   useEffect(() => {
     const updateScale = () => {
-      const width = window.innerWidth
+      const width = window.innerWidth;
       if (width < 480) {
-        setScale(0.5)
+        setScale(0.5);
       } else if (width < 768) {
-        setScale(0.6)
+        setScale(0.6);
       } else if (width < 1024) {
-        setScale(0.8)
+        setScale(0.8);
       } else {
-        setScale(1.0)
+        setScale(1.0);
       }
-      setContainerWidth(width)
-    }
+    };
 
-    updateScale()
-    window.addEventListener('resize', updateScale)
-    return () => window.removeEventListener('resize', updateScale)
-  }, [])
+    updateScale();
+    window.addEventListener("resize", updateScale);
+    return () => window.removeEventListener("resize", updateScale);
+  }, []);
 
   function onDocumentLoadSuccess({ numPages }) {
-    setNumPages(numPages)
+    setNumPages(numPages);
   }
 
-  const goToPrevPage = () => setPageNumber(prev => Math.max(prev - 1, 1))
-  const goToNextPage = () => setPageNumber(prev => Math.min(prev + 1, numPages))
-  const zoomIn = () => setScale(prev => Math.min(prev + 0.1, 2.0))
-  const zoomOut = () => setScale(prev => Math.max(prev - 0.1, 0.3))
-  
+  const goToPrevPage = () => setPageNumber((prev) => Math.max(prev - 1, 1));
+  const goToNextPage = () =>
+    setPageNumber((prev) => Math.min(prev + 1, numPages));
+  const zoomIn = () => setScale((prev) => Math.min(prev + 0.1, 2.0));
+  const zoomOut = () => setScale((prev) => Math.max(prev - 0.1, 0.3));
+
   const downloadPDF = () => {
     const link = document.createElement("a");
-    link.href = pdfUrl;
+    link.href = securedPdfUrl || pdfUrl;
     link.download = fileName || "document.pdf";
     link.click();
   };
 
-  const openInNewTab = () => window.open(pdfUrl, "_blank");
+  const openInNewTab = () => window.open(securedPdfUrl || pdfUrl, "_blank");
 
   if (!pdfUrl) {
     return (
@@ -58,18 +82,16 @@ const PDFViewer = ({ pdfUrl, fileName, numPages: totalPages }) => {
           <p>No PDF URL provided</p>
         </div>
       </div>
-    )
+    );
   }
 
   return (
     <div className="pdf-viewer-container">
       <div className="pdf-viewer-header">
         <div className="pdf-viewer-header-left">
-          <h2 className="pdf-viewer-title">
-            {fileName || 'Document Viewer'}
-          </h2>
+          <h2 className="pdf-viewer-title">{fileName || "Document Viewer"}</h2>
           <span className="pdf-viewer-page-info">
-            Page {pageNumber} of {numPages || '...'}
+            Page {pageNumber} of {numPages || "..."}
           </span>
         </div>
         <div className="pdf-viewer-header-right">
@@ -91,16 +113,10 @@ const PDFViewer = ({ pdfUrl, fileName, numPages: totalPages }) => {
             <ZoomIn size={20} />
           </button>
           <div className="pdf-viewer-divider"></div>
-          <button
-            onClick={openInNewTab}
-            className="pdf-viewer-button"
-          >
+          <button onClick={openInNewTab} className="pdf-viewer-button">
             <ExternalLink size={20} />
           </button>
-          <button
-            onClick={downloadPDF}
-            className="pdf-viewer-button"
-          >
+          <button onClick={downloadPDF} className="pdf-viewer-button">
             <Download size={20} />
           </button>
         </div>
@@ -123,9 +139,9 @@ const PDFViewer = ({ pdfUrl, fileName, numPages: totalPages }) => {
               max={numPages}
               value={pageNumber}
               onChange={(e) => {
-                const page = parseInt(e.target.value)
+                const page = parseInt(e.target.value);
                 if (page >= 1 && page <= numPages) {
-                  setPageNumber(page)
+                  setPageNumber(page);
                 }
               }}
               className="pdf-viewer-page-input"
@@ -146,7 +162,7 @@ const PDFViewer = ({ pdfUrl, fileName, numPages: totalPages }) => {
       <div className="pdf-viewer-content">
         <div className="pdf-viewer-document-wrapper">
           <Document
-            file={pdfUrl}
+            file={securedPdfUrl || undefined}
             onLoadSuccess={onDocumentLoadSuccess}
             loading={
               <div className="pdf-viewer-loading">
@@ -155,7 +171,9 @@ const PDFViewer = ({ pdfUrl, fileName, numPages: totalPages }) => {
             }
             error={
               <div className="pdf-viewer-error">
-                <span className="pdf-viewer-error-text">Failed to load PDF</span>
+                <span className="pdf-viewer-error-text">
+                  Failed to load PDF
+                </span>
               </div>
             }
           >

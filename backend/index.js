@@ -8,6 +8,11 @@ const OpenAI = require('openai');
 const helmet = require('helmet');
 const compression = require('compression');
 const morgan = require('morgan');
+const Document = require('./models/docModel');
+const authRoutes = require('./routes/authRoutes');
+const docRoutes = require('./routes/docRoutes');
+const { connectDB } = require('./config/db');
+const { protect } = require('./middlewares/authMiddleware');
 require('dotenv').config();
 
 const app = express();
@@ -30,6 +35,10 @@ app.use(cors(corsOptions));
 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+connectDB();
+app.use('/api/auth', authRoutes);
+app.use('/api/docs', docRoutes);
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
@@ -60,17 +69,20 @@ const upload = multer({
   }
 });
 
-// Initialize Groq (using OpenAI SDK)
-const openai = new OpenAI({
-  apiKey: process.env.GROQ_API_KEY,
-  baseURL: 'https://api.groq.com/openai/v1'
-});
+// Use Groq by default, with OpenAI available as a compatible fallback.
+const aiApiKey = process.env.GROQ_API_KEY || process.env.OPENAI_API_KEY;
+const isGroq = Boolean(process.env.GROQ_API_KEY);
+const openai = aiApiKey
+  ? new OpenAI({
+      apiKey: aiApiKey,
+      ...(isGroq && { baseURL: 'https://api.groq.com/openai/v1' })
+    })
+  : null;
 
 // Store PDF data in memory (in production, use a database)
-const pdfStore = new Map();
 
 // Routes
-app.post('/api/upload', upload.single('pdf'), async (req, res) => {
+app.post('/api/upload', protect, upload.single('pdf'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No PDF file uploaded' });
@@ -81,25 +93,30 @@ app.post('/api/upload', upload.single('pdf'), async (req, res) => {
 
     // Read and parse PDF
     const dataBuffer = fs.readFileSync(filePath);
-    const pdfData = await pdf(dataBuffer);
+    const pdfData = await pdf(dataBuffer, {
+      pagerender: (pageData) => pageData.getTextContent().then((content) => {
+        const pageText = content.items.map((item) => item.str).join(' ');
+        return `[Page ${pageData.pageIndex + 1}]\n${pageText}`;
+      }),
+    });
     
     // Extract text content
     const textContent = pdfData.text;
     const numPages = pdfData.numpages;
 
-    // Store PDF data with the actual filename
-    const pdfId = fileName; // Use the full filename including extension
-    pdfStore.set(pdfId, {
-      id: pdfId,
+    const pdfId = fileName;
+    const document = await Document.create({
       fileName: req.file.originalname,
-      textContent: textContent,
-      numPages: numPages,
-      uploadTime: new Date().toISOString(),
-      filePath: filePath
+      storedName: fileName,
+      textContent,
+      numPages,
+      filePath,
+      owner: req.user._id,
     });
 
     console.log('PDF uploaded successfully:', {
-      pdfId: pdfId,
+      pdfId: document._id.toString(),
+      storedName: document.storedName,
       fileName: req.file.originalname,
       numPages: numPages,
       filePath: filePath
@@ -107,7 +124,8 @@ app.post('/api/upload', upload.single('pdf'), async (req, res) => {
 
     res.json({
       success: true,
-      pdfId: pdfId,
+      pdfId: document._id.toString(),
+      storedName: document.storedName,
       fileName: req.file.originalname,
       numPages: numPages,
       message: 'PDF uploaded successfully'
@@ -119,7 +137,7 @@ app.post('/api/upload', upload.single('pdf'), async (req, res) => {
   }
 });
 
-app.post('/api/chat', async (req, res) => {
+app.post('/api/chat', protect, async (req, res) => {
   try {
     const { message, pdfId } = req.body;
 
@@ -127,14 +145,13 @@ app.post('/api/chat', async (req, res) => {
       return res.status(400).json({ error: 'Message and PDF ID are required' });
     }
 
-    // Check if Groq API key is configured
-    if (!process.env.GROQ_API_KEY) {
-      return res.status(500).json({ 
-        error: 'Groq API key not configured. Please set GROQ_API_KEY environment variable.' 
+    if (!openai) {
+      return res.status(503).json({
+        error: 'AI service is not configured. Set GROQ_API_KEY or OPENAI_API_KEY in backend/.env and restart the server.'
       });
     }
 
-    const pdfData = pdfStore.get(pdfId);
+    const pdfData = await Document.findOne({ _id: pdfId, owner: req.user._id });
     if (!pdfData) {
       return res.status(404).json({ error: 'PDF not found' });
     }
@@ -142,36 +159,42 @@ app.post('/api/chat', async (req, res) => {
     console.log('Processing chat request:', { message, pdfId, pdfData: pdfData.fileName });
 
     // Create context-aware prompt
-    const systemPrompt = `You are a helpful AI assistant that helps users understand PDF documents. 
-    You have access to a PDF document and should provide accurate, helpful responses based on the document content.
-    When referencing information, always mention the page number if possible.
-    Keep responses concise and relevant.`;
+    const systemPrompt = `You are a careful document-analysis assistant. Answer the user's question using only the supplied PDF content.
+    Give a direct answer first, then brief supporting details when useful.
+    Treat [Page N] markers as the source page and cite the relevant page number(s) in the answer.
+    Never invent facts, names, dates, amounts, or page numbers. If the document does not contain the answer, say so clearly.
+    For summaries, cover the main purpose, important facts, and conclusions without repeating the full document.
+    For comparisons or multi-part questions, organize the answer with short bullets.
+    Keep the response clear and concise.`;
 
-    const userPrompt = `Document Content: ${pdfData.textContent.substring(0, 8000)}
+    const userPrompt = `PDF CONTENT:
+  ${pdfData.textContent.substring(0, 12000)}
     
-    User Question: ${message}
+  USER QUESTION: ${message}
     
-    Please provide a helpful response based on the document content. If you reference specific information, mention the page number.`;
+  Use the page markers to support your answer. Mention page numbers naturally, for example "(Page 2)".`;
 
     // Get AI response from Groq
     const completion = await openai.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
+      model: process.env.AI_MODEL || (isGroq ? 'openai/gpt-oss-20b' : 'gpt-4o-mini'),
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt }
       ],
       max_tokens: 1000,
-      temperature: 0.7
+      temperature: 0.7,
+      reasoning_effort: 'low'
     });
 
-    const aiResponse = completion.choices[0].message.content;
+    const aiResponse = completion.choices?.[0]?.message?.content?.trim();
+    if (!aiResponse) {
+      return res.status(502).json({ error: 'AI provider returned an empty response. Please try again.' });
+    }
 
     // Extract page references (simple heuristic)
-    const pageReferences = [];
-    const pageMatch = aiResponse.match(/page\s+(\d+)/i);
-    if (pageMatch) {
-      pageReferences.push(parseInt(pageMatch[1]));
-    }
+    const pageReferences = [...new Set(
+      [...aiResponse.matchAll(/(?:page|pages)\s+(?:\w+\s+)?(\d+)/gi)].map((match) => parseInt(match[1], 10))
+    )].filter((page) => page >= 1 && page <= pdfData.numPages);
 
     console.log('Chat response generated successfully');
 
@@ -186,20 +209,20 @@ app.post('/api/chat', async (req, res) => {
     console.error('Chat error:', error);
     
     // Provide more specific error messages
-    if (error.code === 'insufficient_quota') {
-      res.status(500).json({ error: 'OpenAI API quota exceeded. Please check your account.' });
-    } else if (error.code === 'invalid_api_key') {
-      res.status(500).json({ error: 'Invalid OpenAI API key. Please check your configuration.' });
+    if (error.code === 'insufficient_quota' || error.status === 429) {
+      res.status(502).json({ error: 'AI provider quota or rate limit exceeded.' });
+    } else if (error.code === 'invalid_api_key' || error.status === 401) {
+      res.status(502).json({ error: 'AI provider rejected the API key. Check your backend configuration.' });
     } else {
       res.status(500).json({ error: 'Failed to process chat request: ' + error.message });
     }
   }
 });
 
-app.get('/api/pdf/:pdfId', (req, res) => {
+app.get('/api/pdf/:pdfId', protect, async (req, res) => {
   try {
     const { pdfId } = req.params;
-    const pdfData = pdfStore.get(pdfId);
+    const pdfData = await Document.findOne({ _id: pdfId, owner: req.user._id });
 
     if (!pdfData) {
       return res.status(404).json({ error: 'PDF not found' });
@@ -208,10 +231,10 @@ app.get('/api/pdf/:pdfId', (req, res) => {
     res.json({
       success: true,
       pdf: {
-        id: pdfData.id,
+        id: pdfData._id,
         fileName: pdfData.fileName,
         numPages: pdfData.numPages,
-        uploadTime: pdfData.uploadTime
+        uploadTime: pdfData.createdAt
       }
     });
 
@@ -221,10 +244,10 @@ app.get('/api/pdf/:pdfId', (req, res) => {
   }
 });
 
-app.get('/api/pdf/:pdfId/content', (req, res) => {
+app.get('/api/pdf/:pdfId/content', protect, async (req, res) => {
   try {
     const { pdfId } = req.params;
-    const pdfData = pdfStore.get(pdfId);
+    const pdfData = await Document.findOne({ _id: pdfId, owner: req.user._id });
 
     if (!pdfData) {
       return res.status(404).json({ error: 'PDF not found' });
@@ -242,19 +265,16 @@ app.get('/api/pdf/:pdfId/content', (req, res) => {
   }
 });
 
-// Serve uploaded PDFs with debugging
-app.use('/uploads', (req, res, next) => {
-  console.log('File request:', req.method, req.url, 'from', req.get('Referer'));
-  next();
-}, express.static(path.join(__dirname, 'uploads'), {
-  setHeaders: (res, path) => {
-    res.set('Content-Type', 'application/pdf');
-    res.set('Content-Disposition', 'inline');
-    res.set('Access-Control-Allow-Origin', '*');
-    res.set('Access-Control-Allow-Methods', 'GET, HEAD');
-    res.set('Access-Control-Allow-Headers', 'Range');
+// Uploaded PDFs require the owning user's token.
+app.get('/uploads/:storedName', protect, async (req, res) => {
+  try {
+    const document = await Document.findOne({ storedName: req.params.storedName, owner: req.user._id });
+    if (!document) return res.status(404).json({ error: 'PDF not found' });
+    res.type('application/pdf').sendFile(path.resolve(document.filePath));
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to load PDF' });
   }
-}));
+});
 
 // Root route - Test if backend is working
 app.get('/', (req, res) => {

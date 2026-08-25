@@ -2,25 +2,18 @@ import axios from "axios";
 
 // Create axios instance with proper configuration
 export const api = axios.create({
-  baseURL: "http://localhost:5000",
+  baseURL: import.meta.env.VITE_API_URL || "http://localhost:5000",
   timeout: 30000, // 30 second timeout
-  withCredentials: true, // Allow cookies for cross-origin requests
   headers: {
     "Content-Type": "application/json",
   },
 });
 
-// Request interceptor for adding auth token if needed
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem("token");
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token');
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
+});
 
 // Response interceptor for error handling
 api.interceptors.response.use(
@@ -45,14 +38,12 @@ export const endpoints = {
   auth: {
     login: "/api/auth/login",
     register: "/api/auth/register",
-    logout: "/api/auth/logout",
+    me: "/api/auth/me",
+    verifyEmail: "/api/auth/verify-email",
+    forgotPassword: "/api/auth/forgot-password",
+    resetPassword: "/api/auth/reset-password",
   },
-  docs: {
-    list: "/api/docs",
-    create: "/api/docs",
-    update: (id) => `/api/docs/${id}`,
-    delete: (id) => `/api/docs/${id}`,
-  },
+  docs: { list: "/api/docs", delete: (id) => `/api/docs/${id}` },
 };
 
 export default api;
