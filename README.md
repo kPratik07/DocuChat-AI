@@ -1,6 +1,6 @@
-# DocuChat AI - Google NotebookLM Clone
+# DocuChat AI
 
-A web-based application that enables users to upload and interact with PDF documents through a chat interface, built with React and Node.js.
+A full-stack PDF workspace that lets authenticated users upload documents, view them, and ask questions about their content.
 
 ## Features
 
@@ -8,72 +8,77 @@ A web-based application that enables users to upload and interact with PDF docum
 - **Built-in PDF Viewer**: Navigate through uploaded documents with zoom and page controls
 - **AI Chat Interface**: Ask questions about document content and get intelligent responses
 - **Citation & Navigation**: Clickable page references that navigate to specific PDF pages
-- **Modern UI**: Clean, intuitive interface matching the Google NotebookLM design
+- **Authentication**: JWT-based accounts with per-user document ownership
+- **Email Verification**: Verification email sent during registration
+- **Password Recovery**: Six-digit OTP sent by email with one-hour expiry
+- **Responsive UI**: Tailwind CSS layout for desktop, tablet, and mobile screens
 
 ## Tech Stack
 
 ### Frontend
+
 - React 18
 - Tailwind CSS
 - React PDF (PDF.js)
 - React Dropzone
 - Lucide React Icons
 - Axios
+- Vite
 
 ### Backend
+
 - Node.js
 - Express.js
 - Multer (file uploads)
 - PDF-parse (PDF text extraction)
-- OpenAI API (GPT-3.5-turbo)
-- CORS, Helmet, Compression
+- Groq or OpenAI-compatible API
+- Nodemailer SMTP email delivery
 
-## Installation
-
-### Prerequisites
 - Node.js (v16 or higher)
 - npm or yarn
-- OpenAI API key
-
-### Backend Setup
 
 1. Navigate to the backend directory:
-```bash
-cd backend
-```
 
+````bash
 2. Install dependencies:
-```bash
-npm install
-```
 
-3. Create a `.env` file in the backend directory:
+```bash
+
 ```env
 PORT=5000
 NODE_ENV=development
-OPENAI_API_KEY=your-openai-api-key-here
-```
+MONGO_URI=mongodb+srv://username:password@cluster.mongodb.net/docuchat
+JWT_SECRET=replace_with_a_long_random_secret
+GROQ_API_KEY=your_groq_api_key_here
+FRONTEND_URL=http://localhost:5173
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=your_email@gmail.com
+SMTP_PASS=your_gmail_app_password
+EMAIL_FROM=DocuChat AI <your_email@gmail.com>
+````
+
+Never commit `.env` or expose SMTP/API credentials in source control.
 
 4. Start the backend server:
+
 ```bash
 npm run dev
 ```
 
-The backend will run on `http://localhost:5000`
-
-### Frontend Setup
-
-1. Navigate to the frontend directory:
 ```bash
 cd frontend
 ```
 
 2. Install dependencies:
+
 ```bash
 npm install
 ```
 
 3. Start the development server:
+
 ```bash
 npm run dev
 ```
@@ -98,6 +103,15 @@ The frontend will run on `http://localhost:5173`
 - `GET /api/pdf/:pdfId/content` - Get PDF text content
 - `GET /api/health` - Health check
 
+### Authentication API
+
+- `POST /api/auth/register` - Create an account and send verification email
+- `POST /api/auth/login` - Sign in after email verification
+- `GET /api/auth/verify-email/:token` - Verify an email address
+- `POST /api/auth/forgot-password` - Send a six-digit password reset OTP
+- `POST /api/auth/reset-password` - Reset a password using email and OTP
+- `GET /api/auth/me` - Get the current authenticated user
+
 ### File Upload
 
 - Supported format: PDF only
@@ -106,69 +120,10 @@ The frontend will run on `http://localhost:5173`
 
 ### Chat Interface
 
-- Uses OpenAI GPT-3.5-turbo for intelligent responses
+- Uses Groq by default, with OpenAI-compatible fallback support
 - Context-aware responses based on PDF content
 - Automatic page reference extraction
 - Token-optimized responses
-
-## Project Structure
-
-```
-DocuChat-AI/
-├── backend/
-│   ├── controllers/     # Request handlers
-│   ├── middlewares/     # Custom middleware
-│   ├── models/          # Data models
-│   ├── routes/          # API routes
-│   ├── services/        # Business logic
-│   ├── uploads/         # PDF storage
-│   ├── utils/           # Utility functions
-│   ├── index.js         # Main server file
-│   └── package.json
-├── frontend/
-│   ├── src/
-│   │   ├── components/  # React components
-│   │   ├── App.jsx      # Main app component
-│   │   └── main.jsx     # Entry point
-│   ├── public/          # Static assets
-│   └── package.json
-└── README.md
-```
-
-## Components
-
-### Frontend Components
-
-- **PDFUpload**: Drag-and-drop PDF upload interface
-- **ChatInterface**: AI chat interface with message history
-- **PDFViewer**: PDF display with navigation controls
-- **CitationButton**: Clickable page reference buttons
-
-### Key Features
-
-- **Responsive Design**: Works on desktop and mobile devices
-- **Real-time Updates**: Live chat interface with typing indicators
-- **Error Handling**: Graceful error handling and user feedback
-- **Performance**: Optimized for large PDF files
-- **Security**: File type validation and size limits
-
-## Configuration
-
-### Environment Variables
-
-Create a `.env` file in the backend directory with:
-
-```env
-PORT=5000
-NODE_ENV=development
-OPENAI_API_KEY=your-openai-api-key-here
-```
-
-### OpenAI API Setup
-
-1. Get an API key from [OpenAI](https://platform.openai.com/)
-2. Add it to your `.env` file
-3. The API will be used for intelligent document analysis
 
 ## Deployment
 
@@ -184,36 +139,8 @@ OPENAI_API_KEY=your-openai-api-key-here
 - Deploy to Netlify, Vercel, or any static hosting service
 - Update API endpoints to point to your deployed backend
 
-## Troubleshooting
+## Notes
 
-### Common Issues
-
-1. **PDF not loading**: Check if the backend is running and accessible
-2. **Upload failures**: Verify file size and format restrictions
-3. **Chat errors**: Ensure OpenAI API key is valid and has credits
-4. **CORS issues**: Check backend CORS configuration
-
-### Development Tips
-
-- Use `npm run dev` for both frontend and backend during development
-- Check browser console and server logs for error messages
-- Ensure all dependencies are properly installed
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly
-5. Submit a pull request
-
-## License
-MIT License - see LICENSE file for details
-
-## Support
-For issues and questions:
-- Check the troubleshooting section
-- Review the code comments
-- Open an issue on the repository
----
-Built with ❤️ using React and Node.js 
+- PDF uploads accept files up to 50MB.
+- Keep `.env` files and credentials out of source control.
+- Run `npm run lint` and `npm run build` before deployment.
