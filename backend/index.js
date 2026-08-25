@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
+const mongoose = require('mongoose');
 const path = require('path');
 const fs = require('fs');
 const pdf = require('pdf-parse');
@@ -8,6 +9,7 @@ const OpenAI = require('openai');
 const helmet = require('helmet');
 const compression = require('compression');
 const morgan = require('morgan');
+const { Readable } = require('stream');
 const Document = require('./models/docModel');
 const authRoutes = require('./routes/authRoutes');
 const docRoutes = require('./routes/docRoutes');
@@ -44,20 +46,8 @@ connectDB();
 app.use('/api/auth', authRoutes);
 app.use('/api/docs', docRoutes);
 
-// Configure multer for file uploads
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const uploadDir = path.join(__dirname, 'uploads');
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-    cb(null, uploadDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, 'file-' + uniqueSuffix + '.pdf');
-  }
-});
+// Keep uploaded PDFs with their database record because the deployment filesystem is ephemeral.
+const storage = multer.memoryStorage();
 
 const upload = multer({
   storage: storage,
@@ -83,21 +73,22 @@ const openai = aiApiKey
     })
   : null;
 
-// Store PDF data in memory (in production, use a database)
+const getPdfBucket = () => new mongoose.mongo.GridFSBucket(mongoose.connection.db, {
+  bucketName: 'pdfs',
+});
 
 // Routes
 app.post('/api/upload', protect, upload.single('pdf'), async (req, res) => {
+  let uploadedFileId;
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No PDF file uploaded' });
     }
 
-    const filePath = req.file.path;
-    const fileName = req.file.filename;
+    const fileName = `file-${Date.now()}-${Math.round(Math.random() * 1E9)}.pdf`;
 
     // Read and parse PDF
-    const dataBuffer = fs.readFileSync(filePath);
-    const pdfData = await pdf(dataBuffer, {
+    const pdfData = await pdf(req.file.buffer, {
       pagerender: (pageData) => pageData.getTextContent().then((content) => {
         const pageText = content.items.map((item) => item.str).join(' ');
         return `[Page ${pageData.pageIndex + 1}]\n${pageText}`;
@@ -109,12 +100,23 @@ app.post('/api/upload', protect, upload.single('pdf'), async (req, res) => {
     const numPages = pdfData.numpages;
 
     const pdfId = fileName;
+    const fileUpload = getPdfBucket().openUploadStream(fileName, {
+      contentType: 'application/pdf',
+      metadata: { owner: req.user._id.toString(), originalName: req.file.originalname },
+    });
+    await new Promise((resolve, reject) => {
+      fileUpload.once('finish', resolve);
+      fileUpload.once('error', reject);
+      Readable.from(req.file.buffer).pipe(fileUpload);
+    });
+    uploadedFileId = fileUpload.id;
+
     const document = await Document.create({
       fileName: req.file.originalname,
       storedName: fileName,
+      fileId: fileUpload.id,
       textContent,
       numPages,
-      filePath,
       owner: req.user._id,
     });
 
@@ -123,7 +125,8 @@ app.post('/api/upload', protect, upload.single('pdf'), async (req, res) => {
       storedName: document.storedName,
       fileName: req.file.originalname,
       numPages: numPages,
-      filePath: filePath
+      storedBytes: req.file.buffer.length,
+      fileId: document.fileId.toString()
     });
 
     res.json({
@@ -137,6 +140,11 @@ app.post('/api/upload', protect, upload.single('pdf'), async (req, res) => {
 
   } catch (error) {
     console.error('Upload error:', error);
+    if (uploadedFileId && mongoose.connection.readyState === 1) {
+      await getPdfBucket().delete(uploadedFileId).catch((cleanupError) => {
+        console.error('Upload cleanup error:', cleanupError);
+      });
+    }
     res.status(500).json({ error: 'Failed to process PDF' });
   }
 });
@@ -285,8 +293,30 @@ app.get('/uploads/:storedName', protect, async (req, res) => {
   try {
     const document = await Document.findOne({ storedName: req.params.storedName, owner: req.user._id });
     if (!document) return res.status(404).json({ error: 'PDF not found' });
-    res.type('application/pdf').sendFile(path.resolve(document.filePath));
+
+    if (document.fileId) {
+      res.type('application/pdf');
+      getPdfBucket().openDownloadStream(document.fileId).on('error', (error) => {
+        console.error('PDF stream error:', error);
+        if (!res.headersSent) res.status(404).json({ error: 'PDF not found' });
+      }).pipe(res);
+      return;
+    }
+
+    if (document.fileData) {
+      res.type('application/pdf').send(document.fileData);
+      return;
+    }
+
+    // Compatibility for documents uploaded before PDFs were stored in MongoDB.
+    if (document.filePath && fs.existsSync(path.resolve(document.filePath))) {
+      res.type('application/pdf').sendFile(path.resolve(document.filePath));
+      return;
+    }
+
+    res.status(410).json({ error: 'This PDF is no longer available. Please upload it again.' });
   } catch (error) {
+    console.error('PDF file error:', error);
     res.status(500).json({ error: 'Failed to load PDF' });
   }
 });

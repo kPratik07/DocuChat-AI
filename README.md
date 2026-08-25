@@ -116,7 +116,7 @@ The frontend will run on `http://localhost:5173`
 
 - Supported format: PDF only
 - Maximum file size: 50MB
-- Files are stored in the `uploads/` directory
+- PDF files are stored in MongoDB GridFS
 
 ### Chat Interface
 
@@ -131,7 +131,7 @@ The frontend will run on `http://localhost:5173`
 
 - Deploy to platforms like Render, Railway, or Heroku
 - Set environment variables in your deployment platform
-- Ensure the uploads directory is writable
+- Ensure the deployment has access to the configured MongoDB database
 
 ### Frontend Deployment
 

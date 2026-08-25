@@ -74,7 +74,7 @@ A Node.js backend API for authenticated PDF libraries and AI-powered questions a
 - `POST /api/chat` - Chat with an owned PDF
 - `GET /api/pdf/:pdfId` - Get owned PDF metadata
 - `GET /api/pdf/:pdfId/content` - Get owned PDF text content
-- `GET /uploads/:storedName` - Stream an owned PDF
+- `GET /uploads/:storedName` - Stream an owned PDF from MongoDB GridFS
 
 ## Environment Variables
 
