@@ -19,19 +19,32 @@ const PDFViewer = ({ pdfUrl, fileName, numPages: totalPages }) => {
   const [numPages, setNumPages] = useState(totalPages || null);
   const [scale, setScale] = useState(1.0);
   const [securedPdfUrl, setSecuredPdfUrl] = useState(null);
+  const [isLoadingPdf, setIsLoadingPdf] = useState(false);
+  const [pdfLoadError, setPdfLoadError] = useState(false);
 
   useEffect(() => {
     let objectUrl;
     const loadPdf = async () => {
+      setSecuredPdfUrl(null);
+      setPdfLoadError(false);
+      setIsLoadingPdf(true);
       try {
         const response = await api.get(pdfUrl, { responseType: "blob" });
         objectUrl = URL.createObjectURL(response.data);
         setSecuredPdfUrl(objectUrl);
       } catch (error) {
         setSecuredPdfUrl(null);
+        setPdfLoadError(true);
+      } finally {
+        setIsLoadingPdf(false);
       }
     };
-    if (pdfUrl) loadPdf();
+    if (pdfUrl) {
+      loadPdf();
+    } else {
+      setIsLoadingPdf(false);
+      setPdfLoadError(false);
+    }
     return () => {
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
@@ -81,6 +94,24 @@ const PDFViewer = ({ pdfUrl, fileName, numPages: totalPages }) => {
         <div className="pdf-viewer-no-url-text">
           <p>No PDF URL provided</p>
         </div>
+      </div>
+    );
+  }
+
+  if (isLoadingPdf) {
+    return (
+      <div className="pdf-viewer-loading">
+        <div className="pdf-viewer-spinner"></div>
+      </div>
+    );
+  }
+
+  if (pdfLoadError || !securedPdfUrl) {
+    return (
+      <div className="pdf-viewer-error">
+        <span className="pdf-viewer-error-text">
+          Failed to load PDF. Please try uploading it again.
+        </span>
       </div>
     );
   }
@@ -162,7 +193,7 @@ const PDFViewer = ({ pdfUrl, fileName, numPages: totalPages }) => {
       <div className="pdf-viewer-content">
         <div className="pdf-viewer-document-wrapper">
           <Document
-            file={securedPdfUrl || undefined}
+            file={securedPdfUrl}
             onLoadSuccess={onDocumentLoadSuccess}
             loading={
               <div className="pdf-viewer-loading">
