@@ -26,7 +26,11 @@ app.use(morgan('combined'));
 // CORS configuration
 const corsOptions = {
   origin: process.env.NODE_ENV === 'production' 
-    ? [process.env.FRONTEND_URL || 'https://docuchat-ai-frontend.onrender.com']
+    ? [
+        process.env.FRONTEND_URL,
+        'https://docu-chat-ai-jet.vercel.app',
+        'https://docuchat-ai-frontend.onrender.com'
+      ].filter(Boolean)
     : ['http://localhost:5173', 'http://localhost:3000'],
   credentials: true,
   optionsSuccessStatus: 200
