@@ -167,8 +167,19 @@ app.post('/api/chat', protect, async (req, res) => {
     For comparisons or multi-part questions, organize the answer with short bullets.
     Keep the response clear and concise.`;
 
+    const pageSections = pdfData.textContent.match(/\[Page \d+\][\s\S]*?(?=\[Page \d+\]|$)/g) || [];
+    const requestedPages = [...new Set(
+      [...message.matchAll(/\bpage(?:s)?\s*(?:number\s*)?(\d+)\b/gi)].map((match) => Number(match[1]))
+    )].filter((page) => page >= 1 && page <= pdfData.numPages);
+    const requestedPageSections = pageSections.filter((section) =>
+      requestedPages.some((page) => section.startsWith(`[Page ${page}]`))
+    );
+    const documentContext = requestedPageSections.length > 0
+      ? requestedPageSections.join('\n\n')
+      : pdfData.textContent;
+
     const userPrompt = `PDF CONTENT:
-  ${pdfData.textContent.substring(0, 12000)}
+  ${documentContext.substring(0, 50000)}
     
   USER QUESTION: ${message}
     
