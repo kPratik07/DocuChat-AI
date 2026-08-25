@@ -68,8 +68,8 @@ export default function Dashboard({ user, onOpen, onLogout }) {
   const nextPdfLabel = `Add your ${getOrdinal(documents.length + 1)} PDF`;
 
   return (
-    <main className="dashboard-page">
-      <header className="dashboard-header px-3 sm:px-10 lg:px-[72px]">
+    <main className="dashboard-page pt-[76px]">
+      <header className="dashboard-header fixed inset-x-0 top-0 z-30 px-3 sm:px-10 lg:px-[72px]">
         <div className="dashboard-brand shrink-0 whitespace-nowrap text-base sm:text-lg">
           <span className="shrink-0">
             <FileText size={20} />

@@ -29,7 +29,7 @@ function App() {
   return (
     <div className="flex min-h-screen flex-col bg-gray-50">
       <Navbar onBack={() => setCurrentPDF(null)} />
-      <div className="flex flex-1 flex-col overflow-hidden">
+      <div className="flex flex-1 flex-col overflow-hidden pt-12 sm:pt-14">
         <div className="flex h-[calc(100vh-3rem)] flex-col overflow-hidden md:h-[calc(100vh-3.5rem)] md:flex-row">
           <div className="flex min-h-[40vh] max-h-[40vh] w-full shrink-0 flex-col overflow-hidden border-b-2 border-gray-200 bg-white md:min-h-full md:max-h-full md:w-[45%] md:border-b-0 md:border-r-2 lg:w-[40%] xl:w-[38%] 2xl:w-[35%]">
             <ChatInterface

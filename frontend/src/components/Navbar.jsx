@@ -2,7 +2,7 @@ import { ArrowLeft, FileText } from "lucide-react";
 
 export default function Navbar({ onBack }) {
   return (
-    <nav className="border-b border-[#dde1d6] bg-[#fffef9] shadow-sm">
+    <nav className="fixed inset-x-0 top-0 z-30 border-b border-[#dde1d6] bg-[#fffef9] shadow-sm">
       <div className="mx-auto max-w-full px-3 sm:px-6 lg:px-8">
         <div className="flex h-12 items-center justify-between sm:h-14">
           <div className="flex shrink-0 items-center gap-2 whitespace-nowrap sm:gap-3">
